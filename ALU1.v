@@ -165,33 +165,46 @@ module ALU
                             // and = 4'h4, or = 4'h5, not = 4'h6, xor = 4'h7,
                             // shl = 4'h8, shr = 4'h9
     input ALUFlagIn,
+    input Clk,
     output [31:0] ALUResult,
     output [3:0]ALUFlags);  // [3:0] = [V,C,Z,N]
 
 
   wire [31:0] Add, Btwos, Menos1, Mas1, Sub, And, Or, Xor, NotA, NotB, DespD, DespI;
   wire c1, c2, c3, c4, c5, c6;
-
+  reg [31:0]ALU1;
+  reg [3:0]ALU2;
 
   //generate
 
   //if (ALUControl==4'h0)
+
     Twos A(.A(ALUB),.B(Btwos));
     suma D(.A(ALUA),.B(ALUB), .cin(ALUFlagIn), .Sum(Add),.cout(c1));
     suma DU(.A(ALUA),.B(Btwos), .cin(ALUFlagIn), .Sum(Sub),.cout(c2));
     suma DUT(.A(ALUA),.B(32'd1), .cin(ALUFlagIn), .Sum(Mas1),.cout(c3));
     suma DUT1(.A(ALUA),.B(32'd4294967295), .cin(ALUFlagIn), .Sum(Menos1),.cout(c4));
     DespD DUT2(.A(ALUA),.B(ALUB), .AluFlagIn(ALUFlagIn), .Y(DespD), .Flags(c5));
-    DespI DUT3(.A(ALUA),.B(ALUB), .AluFlagIn(ALUFlagIn), .Y(DespI), .Flags(c6));
+    DespI DUT3(.A(ALUA),.B(ALUB), .AluFlagIn(ALUFlagIn), .Y(DespI), .Flags(c6));      
 
+    
     assign And=ALUA&ALUB;
     assign Or =ALUA|ALUB;
     assign Xor=ALUA ^ ALUB;
     assign NotA=~ALUA;
     assign NotB=~ALUB;
   //endgenerate
-  assign ALUResult = func(ALUControl,ALUFlagIn, Add,Sub,Mas1,Menos1,And,Or,Xor,NotA,NotB);
+  always @(negedge Clk) begin
+    ALU1 = func(ALUControl,ALUFlagIn, Add,Sub,Mas1,Menos1,And,Or,Xor,NotA,NotB);
+    ALU2 = flag(ALUA,ALUB,ALUResult,ALUControl,c1,c2,c3,c4,c5,c6);
+  end
 
+  assign ALUResult = ALU1;
+  assign ALUFlags = ALU2;
+  //assign ALUResult = func(ALUControl,ALUFlagIn, Add,Sub,Mas1,Menos1,And,Or,Xor,NotA,NotB);
+  //assign ALUFlags= flag(ALUA,ALUB,ALUResult,ALUControl,c1,c2,c3,c4,c5,c6);
+
+  
   function [31:0] func(input [3:0] ALUControl,input ALUFlagIn,input [31:0] Add, input [31:0]Sub, input [31:0] Mas1,input[31:0] Menos1,input [31:0] And, input [31:0] Or, input [31:0] Xor, input [31:0] NotA, input [31:0] notB );
     case (ALUControl)
       4'h0: func=Add;
@@ -212,7 +225,7 @@ module ALU
 
     endcase
   endfunction
-assign ALUFlags= flag(ALUA,ALUB,ALUResult,ALUControl,c1,c2,c3,c4,c5,c6);
+
 
 function [3:0] flag(input [31:0]ALUA,ALUB, input [31:0] ALUResult, input [3:0] ALUControl, input c1,c2,c3,c4,c5,c6);
   case (ALUControl)
@@ -315,6 +328,7 @@ function [3:0] flag(input [31:0]ALUA,ALUB, input [31:0] ALUResult, input [3:0] A
         flag[0]=0;
         end
   endcase
+  
 endfunction
 
 endmodule
